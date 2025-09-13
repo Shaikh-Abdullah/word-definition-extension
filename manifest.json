@@ -19,9 +19,10 @@
       }
     ],
     "icons": {
-      "16": "icon.svg",
-      "32": "icon.svg",
-      "48": "icon.svg",
-      "128": "icon.svg"
+        "16": "assets/word-defination.png",
+        "32": "assets/word-defination.png",
+        "48": "assets/word-defination.png",
+        "128": "assets/word-defination.png"
     }
+    
   }
