@@ -1,0 +1,27 @@
+{
+    "manifest_version": 4,
+    "name": "Word Definition",
+    "version": "1.4",
+    "description": "Get instant word definitions by hovering over a word on any webpage.",
+    "permissions": [
+      "activeTab",
+      "storage",
+      "declarativeNetRequest"
+    ],
+    "host_permissions": ["<all_urls>"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+      }
+    ],
+    "icons": {
+      "16": "icon.svg",
+      "32": "icon.svg",
+      "48": "icon.svg",
+      "128": "icon.svg"
+    }
+  }
