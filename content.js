@@ -1,138 +1,144 @@
 let tooltip = null;
-let toast = null;
+let toaster = null;
+let toasterTimeout = null;
 
-// Function to create and show the tooltip for a selected word
-function showDefinitionPrompt(word, x, y) {
-  // Remove any existing tooltips
+function showTooltip(text, x, y) {
   if (tooltip) {
     tooltip.remove();
   }
 
   tooltip = document.createElement('div');
-  tooltip.textContent = `Click to define: "${word}"`;
   tooltip.style.cssText = `
     position: absolute;
     top: ${y + 10}px;
-    left: ${x}px;
-    background-color: #007bff;
+    left: ${x + 10}px;
+    background-color: #333;
     color: white;
     padding: 8px 12px;
     border-radius: 6px;
     font-family: sans-serif;
     font-size: 14px;
     z-index: 9999;
+    max-width: 300px;
+    word-wrap: break-word;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    display: block;
+    pointer-events: auto;
     cursor: pointer;
     transition: opacity 0.2s ease-in-out;
     opacity: 0;
   `;
+  tooltip.textContent = text;
   document.body.appendChild(tooltip);
 
-  // Animate the tooltip in
   setTimeout(() => {
     if (tooltip) {
       tooltip.style.opacity = '1';
     }
   }, 10);
-
-  // Attach a click listener to the tooltip to get the definition
-  tooltip.addEventListener('click', () => {
-    hideTooltip();
-    try {
-      chrome.runtime.sendMessage({ action: 'getDefinition', word: word }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Content Script: Error sending message:", chrome.runtime.lastError.message);
-          showToaster('Failed to get definition. Please try again.');
-          return;
-        }
-        if (response && response.definition) {
-          showToaster(response.definition);
-        } else {
-          showToaster('Definition not found.');
-        }
-      });
-    } catch (e) {
-      console.error("Content Script: Could not send message:", e);
-      showToaster('Failed to get definition. Please try again.');
-    }
-  });
 }
 
-// Function to create and show the toaster notification
+function hideTooltip() {
+  if (tooltip) {
+    tooltip.style.opacity = '0';
+    setTimeout(() => {
+      if (tooltip) {
+        tooltip.remove();
+        tooltip = null;
+      }
+    }, 200);
+  }
+}
+
 function showToaster(text) {
-  // Remove any existing toaster
-  if (toast) {
-    toast.remove();
+  if (toaster) {
+    clearTimeout(toasterTimeout);
+    toaster.remove();
   }
 
-  toast = document.createElement('div');
-  toast.textContent = text;
-  toast.style.cssText = `
+  toaster = document.createElement('div');
+  toaster.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
-    background-color: #333;
+    background-color: #007bff;
     color: white;
-    padding: 15px 20px;
+    padding: 15px 25px;
     border-radius: 8px;
     font-family: sans-serif;
     font-size: 16px;
     z-index: 10000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     max-width: 350px;
     word-wrap: break-word;
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-    transform: translateY(-50px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
   `;
-  document.body.appendChild(toast);
+  toaster.textContent = text;
+  document.body.appendChild(toaster);
 
-  // Animate the toaster in
+  // Fade in the toaster
   setTimeout(() => {
-    if (toast) {
-      toast.style.transform = 'translateY(0)';
-      toast.style.opacity = '1';
+    if (toaster) {
+      toaster.style.opacity = '1';
+      toaster.style.transform = 'translateY(0)';
     }
-  }, 100);
+  }, 10);
 
-  // Hide the toaster after a few seconds
-  setTimeout(() => {
-    if (toast) {
-      toast.style.transform = 'translateY(-50px)';
-      toast.style.opacity = '0';
-      setTimeout(() => {
-        if (toast) {
-          toast.remove();
-          toast = null;
-        }
-      }, 300);
-    }
-  }, 30000); // 5 seconds
+  // Add event listeners to pause the timer on hover
+  toaster.addEventListener('mouseover', () => {
+    clearTimeout(toasterTimeout);
+  });
+
+  toaster.addEventListener('mouseout', () => {
+    // Start the timer again when the mouse leaves
+    toasterTimeout = setTimeout(() => {
+      hideToaster();
+    }, 5000);
+  });
+
+  // Set the initial timer to hide the toaster after 5 seconds
+  toasterTimeout = setTimeout(() => {
+    hideToaster();
+  }, 5000);
 }
 
-// Function to hide the tooltip
-function hideTooltip() {
-  if (tooltip) {
-    tooltip.remove();
-    tooltip = null;
+function hideToaster() {
+  if (toaster) {
+    toaster.style.opacity = '0';
+    toaster.style.transform = 'translateY(-20px)';
+    setTimeout(() => {
+      if (toaster) {
+        toaster.remove();
+        toaster = null;
+      }
+    }, 300);
   }
 }
 
-// Listen for text selection
 document.addEventListener('mouseup', (event) => {
-  const selection = window.getSelection().toString().trim();
-  
-  if (selection.length > 0) {
-    // Check if the selected text is a single word
-    if (selection.split(/\s+/).length === 1) {
-      showDefinitionPrompt(selection, event.pageX, event.pageY);
-    }
-  }
-});
+  const selection = window.getSelection();
+  const selectedText = selection.toString().trim();
+  const activeElement = document.activeElement;
 
-// Hide the tooltip if the user clicks anywhere else
-document.addEventListener('mousedown', (event) => {
-  if (tooltip && !tooltip.contains(event.target)) {
+  if (selectedText.length > 0 && selectedText.split(/\s+/).length === 1 && !['INPUT', 'TEXTAREA'].includes(activeElement.tagName)) {
+    console.log(`Content Script: Selected word: ${selectedText}`);
+    showTooltip('Click for definition', event.pageX, event.pageY);
+
+    tooltip.onclick = () => {
+      chrome.runtime.sendMessage({ action: 'getDefinition', word: selectedText }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Content Script: Could not send message:", chrome.runtime.lastError.message);
+          return;
+        }
+        if (response && response.definition) {
+          showToaster(response.definition);
+        }
+      });
+      hideTooltip();
+    };
+  } else {
     hideTooltip();
   }
 });
