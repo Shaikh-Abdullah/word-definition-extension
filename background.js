@@ -20,10 +20,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             let definition = "Definition not found";
 
             if (data && data.length > 0 && data[0].meanings && data[0].meanings.length > 0) {
-                // Check if the first meaning has definitions
-                if (data[0].meanings[0].definitions && data[0].meanings[0].definitions.length > 0) {
-                    // Get only the first definition
-                    definition = data[0].meanings[0].definitions[0].definition;
+                const allDefinitions = [];
+                data[0].meanings.forEach(meaning => {
+                    meaning.definitions.forEach(def => {
+                        allDefinitions.push(def.definition);
+                    });
+                });
+                
+                if (allDefinitions.length > 0) {
+                    // Format definitions as a numbered list
+                    definition = allDefinitions.map((def, index) => `${index + 1}. ${def}`).join('\n\n');
                 }
             }
             sendResponse({definition});

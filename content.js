@@ -61,8 +61,8 @@ function showToaster(text) {
     position: fixed;
     top: 20px;
     right: 20px;
-    background-color: #007bff;
-    color: white;
+    background-color: #1a1a1a;
+    color: #f0f0f0;
     padding: 15px 25px;
     border-radius: 8px;
     font-family: sans-serif;
@@ -74,6 +74,9 @@ function showToaster(text) {
     opacity: 0;
     transform: translateY(-20px);
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
   `;
   toaster.textContent = text;
   document.body.appendChild(toaster);
